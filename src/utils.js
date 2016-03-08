@@ -44,6 +44,35 @@ export function endsWith(s1, s2) {
 }
 
 /**
+ * Inlines the generated webpack manifest into index.html before </head> and
+ * deletes the generated manifest files.
+ */
+export function inlineManifest(cb) {
+  try {
+    let indexHtml = fs.readFileSync('dist/index.html', 'utf8')
+    let webpackManifest = fs.readFileSync('dist/manifest.js', 'utf8')
+    webpackManifest = webpackManifest.replace('\n//# sourceMappingURL=manifest.js.map', '')
+    indexHtml = indexHtml.replace('</head>', `<script>${webpackManifest}</script></head>`)
+    fs.writeFileSync('dist/index.html', indexHtml, 'utf8')
+    fs.unlinkSync('dist/manifest.js')
+    fs.unlinkSync('dist/manifest.js.map')
+    cb()
+  }
+  catch (e) {
+    cb(e)
+  }
+}
+
+/**
+ * At some stage, webpack-html-plugin started putting app and vendor in the
+ * wrong order and providing a custom chunk sorting function which does nothing
+ * apparently fixes it.
+ */
+export function sortChunks(chunks) {
+  return chunks
+}
+
+/**
  * Better typeof.
  */
 export function typeOf(o) {

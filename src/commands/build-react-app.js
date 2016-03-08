@@ -1,6 +1,6 @@
 import path from 'path'
 
-import {copyPublicDir} from '../utils'
+import {copyPublicDir, inlineManifest, sortChunks} from '../utils'
 import webpackBuild from '../webpackBuild'
 
 // Use a config function, as this won't be called until after NODE_ENV has been
@@ -13,12 +13,15 @@ let buildConfig = () => {
       app: path.resolve('src/index.js')
     },
     output: {
-      filename: '[name].js',
+      filename: '[name].[chunkhash:8].js',
+      chunkFilename: '[name].[chunkhash:8].js',
       path: path.resolve('dist'),
       publicPath: '/'
     },
     plugins: {
       html: {
+        chunksSortMode: sortChunks,
+        excludeChunks: ['manifest'],
         template: path.resolve('src/index.html')
       },
       vendorChunkName: 'vendor'
@@ -47,5 +50,8 @@ export default function(args, cb) {
   copyPublicDir('public', 'dist')
 
   console.log(`nwb: build-react-app`)
-  webpackBuild(args, buildConfig, cb)
+  webpackBuild(args, buildConfig, err => {
+    if (err) return cb(err)
+    inlineManifest(cb)
+  })
 }

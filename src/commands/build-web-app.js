@@ -1,6 +1,6 @@
 import path from 'path'
 
-import {copyPublicDir} from '../utils'
+import {copyPublicDir, inlineManifest, sortChunks} from '../utils'
 
 import webpackBuild from '../webpackBuild'
 
@@ -9,22 +9,30 @@ export default function(args, cb) {
 
   copyPublicDir('public', 'dist')
 
-  console.log(`nwb: build-web-app`)
-  webpackBuild(args, {
+  let buildConfig = {
     devtool: 'source-map',
     entry: {
       app: path.resolve('src/index.js')
     },
     output: {
-      filename: '[name].js',
+      filename: '[name].[chunkhash:8].js',
+      chunkFilename: '[name].[chunkhash:8].js',
       path: path.resolve('dist'),
       publicPath: '/'
     },
     plugins: {
       html: {
+        chunksSortMode: sortChunks,
+        excludeChunks: ['manifest'],
         template: path.resolve('src/index.html')
       },
       vendorChunkName: 'vendor'
     }
-  }, cb)
+  }
+
+  console.log(`nwb: build-web-app`)
+  webpackBuild(args, buildConfig, err => {
+    if (err) return cb(err)
+    inlineManifest(cb)
+  })
 }

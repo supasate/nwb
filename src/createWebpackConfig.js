@@ -7,6 +7,7 @@ import HtmlWebpackPlugin from 'html-webpack-plugin'
 import NpmInstallPlugin from 'npm-install-webpack-plugin'
 import qs from 'qs'
 import webpack, {optimize} from 'webpack'
+import WebpackMd5Hash from 'webpack-md5-hash'
 import merge from 'webpack-merge'
 
 import debug from './debug'
@@ -262,7 +263,8 @@ export function createPlugins(server, buildConfig = {}, userConfig = {}) {
       ...userConfig.define
     }),
     new optimize.DedupePlugin(),
-    new optimize.OccurenceOrderPlugin()
+    new optimize.OccurenceOrderPlugin(),
+    new WebpackMd5Hash()
   ]
 
   // Assumption: we're always hot reloading if we're bundling on the server
@@ -278,7 +280,7 @@ export function createPlugins(server, buildConfig = {}, userConfig = {}) {
   }
 
   if (!server) {
-    plugins.push(new ExtractTextPlugin(`[name].css`, {
+    plugins.push(new ExtractTextPlugin(`[name].[contenthash:8].css`, {
       ...userConfig.extractText
     }))
 
@@ -289,9 +291,13 @@ export function createPlugins(server, buildConfig = {}, userConfig = {}) {
         minChunks(module, count) {
           return (
             module.resource &&
-            module.resource.indexOf(path.resolve('node_modules')) === 0
+            module.resource.indexOf('node_modules') !== -1
           )
         }
+      }))
+      plugins.push(new optimize.CommonsChunkPlugin({
+        name: 'manifest',
+        filename: 'manifest.js'
       }))
     }
   }
